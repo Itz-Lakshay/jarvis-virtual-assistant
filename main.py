@@ -40,20 +40,35 @@ def speak(text):
     pygame.mixer.music.unload()
     os.remove('temp.mp3')
 
+conversation_history = [
+    {"role": "system", "content": "You are a virtual assistant named jarvis skilled in general tasks like Alexa and Google Cloud, Give short responses please"}
+]
+
+MAX_HISTORY = 10  # keep last 10 exchanges to avoid unbounded growth
+
+
 def aiProcess(command):
-    client = OpenAI(
-        api_key = os.environ.get("OPENAI_API_KEY")
-    )
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return "I'm currently unable to reach my AI brain — no API key is configured."
 
-    completion = client.chat.completions.create(
-        model = "gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a virtual assistant named jarvis skilled in general tasks like Alexa and Google Cloud, Give short responses please"},
-            {"role": "user", "content": command}
-        ]
-    )
+    conversation_history.append({"role": "user", "content": command})
 
-    return completion.choices[0].message.content
+    # Trim history so it doesn't grow forever (keep system prompt + last N turns)
+    if len(conversation_history) > MAX_HISTORY + 1:
+        conversation_history[:] = [conversation_history[0]] + conversation_history[-MAX_HISTORY:]
+
+    try:
+        client = OpenAI(api_key=api_key)
+        completion = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=conversation_history
+        )
+        reply = completion.choices[0].message.content
+        conversation_history.append({"role": "assistant", "content": reply})
+        return reply
+    except Exception as e:
+        return "Sorry, I couldn't process that request right now."
 
 def processCommand(c):
     if "open google" in c.lower():
