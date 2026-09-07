@@ -8,8 +8,15 @@ from gtts import gTTS
 import pygame
 import os
 from datetime import datetime
+import logging
 from dotenv import load_dotenv
 load_dotenv()
+
+logging.basicConfig(
+    filename='jarvis.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 Recognizer = sr.Recognizer()
 
@@ -71,48 +78,62 @@ def aiProcess(command):
         return "Sorry, I couldn't process that request right now."
 
 def processCommand(c):
+    logging.info(f"Command received: {c}")
+
     if "open google" in c.lower():
         webbrowser.open("https://google.com")
+        logging.info("Action: opened Google")
 
     elif "open linkedin" in c.lower():
         webbrowser.open("https://linkedin.com")
+        logging.info("Action: opened LinkedIn")
 
     elif "open youtube" in c.lower():
         webbrowser.open("https://youtube.com")
+        logging.info("Action: opened YouTube")
 
     elif "open facebook" in c.lower():
         webbrowser.open("https://facebook.com")
+        logging.info("Action: opened Facebook")
 
     elif c.lower().startswith("play"):
         song = c.lower().split()[1]
-        link = musicLibrary.music[song]
-        webbrowser.open(link)
+        link = musicLibrary.music.get(song)
+        if link:
+            webbrowser.open(link)
+            logging.info(f"Action: played song '{song}'")
+        else:
+            speak(f"I don't have {song} in my music library.")
+            logging.warning(f"Song not found: '{song}'")
 
     elif "time" in c.lower():
         current_time = datetime.now().strftime("%I:%M %p")
         speak(f"The current time is {current_time}")
+        logging.info(f"Action: spoke time - {current_time}")
 
-    elif "date" in c.lower():   
+    elif "date" in c.lower():
         current_date = datetime.now().strftime("%B %d, %Y")
         speak(f"Today's date is {current_date}")
+        logging.info(f"Action: spoke date - {current_date}")
 
     elif "news" in c.lower():
+        if not newsapi:
+            speak("News feature isn't configured right now.")
+            logging.warning("News command failed: no API key configured")
+            return
         r = requests.get(f"https://newsapi.org/v2/top-headlines?country=us&apiKey={newsapi}")
         if r.status_code == 200:
-            # Parse the json response
-            data = r.json()
-
-            # Extract the articles
-            articles = data.get('articles',[])
-
-            # Speak the headline
-            for article in articles:
+            articles = r.json().get('articles', [])
+            for article in articles[:5]:
                 speak(article["title"])
+            logging.info(f"Action: read {min(5, len(articles))} news headlines")
+        else:
+            logging.error(f"News API returned status {r.status_code}")
 
     else:
-        # Let OpenAI handle the request
         output = aiProcess(c)
         speak(output)
+        logging.info(f"AI response given for: '{c}'")
 
 
 if __name__ == "__main__":
