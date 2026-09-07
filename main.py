@@ -75,7 +75,7 @@ def aiProcess(command):
         conversation_history.append({"role": "assistant", "content": reply})
         return reply
     except Exception as e:
-        return "Sorry, I couldn't process that request right now."
+        return "Sorry, I couldn't process that request right now due to low credits."
 
 def processCommand(c):
     logging.info(f"Command received: {c}")
