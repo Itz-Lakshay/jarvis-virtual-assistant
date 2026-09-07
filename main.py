@@ -7,6 +7,7 @@ from openai import OpenAI
 from gtts import gTTS
 import pygame
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -71,6 +72,14 @@ def processCommand(c):
         song = c.lower().split()[1]
         link = musicLibrary.music[song]
         webbrowser.open(link)
+
+    elif "time" in c.lower():
+        current_time = datetime.now().strftime("%I:%M %p")
+        speak(f"The current time is {current_time}")
+
+    elif "date" in c.lower():   
+        current_date = datetime.now().strftime("%B %d, %Y")
+        speak(f"Today's date is {current_date}")
 
     elif "news" in c.lower():
         r = requests.get(f"https://newsapi.org/v2/top-headlines?country=us&apiKey={newsapi}")
